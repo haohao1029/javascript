@@ -1,10 +1,10 @@
 function genTable(name, link, column, type) {
     // nav
-    $(".navigation").append("<li class='nav-item'><a class='nav-link' href='/" + name + "'>" + link + "</a></li>");
+    $(".navigation").append(`<li class='nav-item'><a class='nav-link' href='/${name}'>" + ${link} + "</a></li>`);
 
     //table
-    const tableName = "table-" + name
-    const selectorTableName = "#" + tableName
+    const tableName = `table-${name}`
+    const selectorTableName = `#${tableName}`
     const columnArr = column.split(", ")
     const columnsArr = [];
     for (let i = 0; i < columnArr.length; i++) {
@@ -13,41 +13,57 @@ function genTable(name, link, column, type) {
     columnsArr.push({ 'data': "id" })
 
     const typeArr = type.split(", ")
-    $("." + name).append("<table  id='" + tableName + "' class='table-hover table'></table>");
+    $(`.${name}`).append(`<table id='${tableName}' class='table-hover table'></table>`);
     //table header
-    $(selectorTableName).append("<thead><tr class='table-primary' id='thead" + name + "'></tr></thead>")
+    $(selectorTableName).append(`<thead><tr class='table-primary' id='thead-${name}'></tr></thead>`)
     for (let i = 0; i < columnArr.length; i++) {
-        $("#thead" + name).append("<td>" + columnArr[i].toUpperCase() + "</td>")
+        $(`#thead-${name}`).append(`<td>${columnArr[i].toUpperCase()}</td>`)
     }
-    $("#thead" + name).append("<td>Action</td>")
-    $(selectorTableName).append("<tbody></tbody>")
+    $(`#thead-${name}`).append(`<td>Action</td>`)
+    $(selectorTableName).append(`<tbody></tbody>`)
+
+
 
     //Modal
-    const ModalDialog = "#modal-dialog-" + name
-    $("." + name).before("<h1> List " + link + "</h1>");
-    $("." + name).append("<div class='modal fade' id='modal-" + name + "'></div>");
-    $("#modal-" + name).append("<div id='modal-dialog-" + name + "' class='modal-dialog modal-dialog-centered'></div>")
-    $(ModalDialog).append("<div class='modal-content'></div>")
-    $(ModalDialog + " .modal-content").append("<div class='modal-header'>" + link + "</div>")
-    $(ModalDialog + " .modal-content").append("<div class='modal-body'></div>")
-    $(ModalDialog + " .modal-content" + " .modal-body").append("<form method='POST' id='form-" + name + "'>")
+    let modal = `<h1>List ${link}</h1>
+    <div class='modal fade' id='modal-${name}'>
+        <div id='modal-dialog-${name}' class='modal-dialog modal-dialog-centered'>
+                <div class='modal-content'>
+                    <div class='modal-header'>${link}
+                    </div>
+                    <div class='modal-body'>
+                        <form method='POST' id='form-${name}'>
+                        <input type='hidden' class='form-control ${name}-id' id='${name}-id' name='id'>
+                        </form>
+                    </div>
+                    <div class='modal-footer'>
+                    <input type='button' data-dismiss='modal' class='btn btn-danger' value='Cancel'>
+                    <input type='submit' class='btn btn-primary' value='Submit' form='form-${name}'>
+                    </div>
+                </div>
+        </div>
+    </div>
+    <span class= 'btn btn-primary btn-new'>New ${link}</span>`
+
+    
+    // loop form input
     for (let i = 0; i < columnArr.length; i++) {
-        $("#form-" + name).append("<label>" + columnArr[i].toUpperCase() + "</label><input type='" + typeArr[i] + "' class='form-control " + name + "-" + columnArr[i] + "' name='" + columnArr[i] + "' id='" + columnArr[i] + "'>")
+        $(`#form-${name}`).append(`<label>${columnArr[i].toUpperCase()}</label>
+        <input type='${typeArr[i]}' class='form-control ${name}-${columnArr[i]}' name='${columnArr[i]}' id='${columnArr[i]}'>`)
     }
-    $("#form-" + name).append("<input type='hidden' class='form-control " + name + "-id' id='" + name + "-id' name='id'>")
-    $(ModalDialog + " .modal-content").append("<div class='modal-footer'></div>")
-    $(ModalDialog + " .modal-content" + " .modal-footer").append("<input type='button' data-dismiss='modal' class='btn btn-danger' value='Cancel'><input type='submit' class='btn btn-primary' value='Submit' form='form-" + name + "'>")
-    $("." + name).append("<span class= 'btn btn-primary btn-new'>New " + link + "</span>");
+
     $(".btn-new").on("click", () => {
         for (let i = 0; i < columnArr.length; i++) {
-            $('.' + name + '-' + columnArr[i]).val("")
-            if ($('.' + name + '-' + columnArr[i]).attr("type") == "date") {
-                $('.' + name + '-' + columnArr[i]).val(moment(new Date()))
+            $(`.${name}-${columnArr[i]}`).val("")
+            if ($(`.${name}-${columnArr[i]}`).attr("type") == "date") {
+                $(`.${name}-${columnArr[i]}`).val(new Date())
             }
         }
-        $('.' + name + '-id').val("")
-        $("#modal-" + name).modal();
+        $(`.${name}-id`).val("")
+        $(`#modal-${name}`).modal();
     })
+
+    $(`.${name}`).append(modal)
     // DataTable
     $(selectorTableName).DataTable({
         "processing": true,
@@ -56,8 +72,8 @@ function genTable(name, link, column, type) {
         "columns": columnsArr,
         "rowCallback": function (row, dtdata, index) {
             let lastCol = $(row).find("td").length - 1
-            $("td:eq(" + lastCol + ")", row).attr("class", "td-actions")
-            $("td:eq(" + lastCol + ")", row).html("")
+            $(`td:eq(${lastCol})`, row).attr("class", "td-actions")
+            $(`td:eq(${lastCol})`, row).html("")
             const editButton = formButton("Edit", "primary", dtdata.id);
             const deleteButton = formButton("Delete", "danger", dtdata.id);
             editButton.onclick = function () {
@@ -71,14 +87,14 @@ function genTable(name, link, column, type) {
                     success: function (response) {
                         console.log(response[0])
                         for (let i = 0; i < columnArr.length; i++) {
-                            $('.' + name + '-' + columnArr[i]).val(response[0][columnArr[i]])
+                            $(`.${name}-${columnArr[i]}`).val(response[0][columnArr[i]])
                             console.log(columnArr[i])
 
                         }
-                        $('.' + name + '-id').val(response[0].id)
+                        $(`.${name}-id`).val(response[0].id)
                     }
                 });
-                $("#modal-" + name).modal();
+                $(`#modal-${name}`).modal();
             }
             deleteButton.onclick = function () {
                 const id = dtdata.id;
@@ -94,34 +110,35 @@ function genTable(name, link, column, type) {
                 $(selectorTableName).DataTable().ajax.reload()
 
             }
-            $("td:eq(" + lastCol + ")", row).append(editButton)
-            $("td:eq(" + lastCol + ")", row).append(deleteButton)
+            $(`td:eq(${lastCol})`, row).append(editButton)
+            $(`td:eq(${lastCol})`, row).append(deleteButton)
         },
 
     })
     function formButton(iconName, color, id) {
-        var button = document.createElement("button");
+        let button = document.createElement("button");
         button.setAttribute("type", "button");
         button.setAttribute("rel", "tooltip");
         button.setAttribute("class", "btn btn-" + color);
         button.setAttribute("data-value", id);
         button.setAttribute("style", "margin: 0px 5px");
         button.innerHTML = iconName;
-        var div = document.createElement("div");
+        let div = document.createElement("div");
         return button;
     }
-    $('#form-' + name).on('submit', (e) => {
+    $(`#form-${name}`).on('submit', (e) => {
         e.preventDefault();
         validateSubmit();
 
     })
     const validateSubmit = () => {
-        const form = $('#form-' + name)[0];
+        const form = $(`#form-${name}`)[0];
         const data = new FormData(form);
-        if ($('#' + name + '-id').val() != "" || null) {
+        let mode = "edit";
+        if ($(`#${name}-id`).val() != "" || null ?  mode : mode = "new") {
             $.ajax({
                 method: "POST",
-                url: "api/edit" + name,
+                url: `api/${mode}/${name}`,
                 data: data,
                 processData: false,
                 cache: false,
@@ -131,24 +148,8 @@ function genTable(name, link, column, type) {
                     console.log(response)
                 }
             });
-        } else {
-            $.ajax({
-                method: "POST",
-                url: "api/new" + name,
-                data: data,
-                processData: false,
-                cache: false,
-                enctype: "multipart/form-data",
-                contentType: false,
-                success: function (response) {
-                    console.log(response)
-                }
-            });
-
         }
-        $("#modal-" + name).modal('hide');
+        $(`#modal-${name}`).modal('hide');
         $(selectorTableName).DataTable().ajax.reload()
-
     }
-
 }
