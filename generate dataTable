@@ -1,6 +1,10 @@
+genTable("users", "User", "email, provider, is_admin", "string, string, string")
+genTable("items", "Item", "title, amount, price", "string, number, number")
+
+
 function genTable(name, link, column, type) {
     // nav
-    $(".navigation").append(`<li class='nav-item'><a class='nav-link' href='/${name}'>" + ${link} + "</a></li>`);
+    $(".navigation").append(`<li class='nav-item'><a class='nav-link' href='/${name}'>${link}</a></li>`);
 
     //table
     const tableName = `table-${name}`
@@ -13,27 +17,33 @@ function genTable(name, link, column, type) {
     columnsArr.push({ 'data': "id" })
 
     const typeArr = type.split(", ")
-    $(`.${name}`).append(`<table id='${tableName}' class='table-hover table'></table>`);
+
+    $(`.${name}`).append(`<table id='${tableName}' class='table-hover table'>
+    <thead><tr class='table-primary' id='thead-${name}'></tr></thead>
+    <tbody></tbody>
+    </table>`);
     //table header
-    $(selectorTableName).append(`<thead><tr class='table-primary' id='thead-${name}'></tr></thead>`)
     for (let i = 0; i < columnArr.length; i++) {
         $(`#thead-${name}`).append(`<td>${columnArr[i].toUpperCase()}</td>`)
     }
     $(`#thead-${name}`).append(`<td>Action</td>`)
-    $(selectorTableName).append(`<tbody></tbody>`)
 
 
+    const _csrf_token = $("meta[name='csrf-token']").attr("content")
 
     //Modal
-    let modal = `<h1>List ${link}</h1>
+    $(`.${name}`).before(`<h1>List ${link}</h1>`)
+    $(`.${name}`).append(`
     <div class='modal fade' id='modal-${name}'>
         <div id='modal-dialog-${name}' class='modal-dialog modal-dialog-centered'>
                 <div class='modal-content'>
-                    <div class='modal-header'>${link}
+                    <div class='modal-header'>
+                    ${link}
                     </div>
                     <div class='modal-body'>
                         <form method='POST' id='form-${name}'>
                         <input type='hidden' class='form-control ${name}-id' id='${name}-id' name='id'>
+                        <input type='hidden' class='form-control ' id='' name='_csrf_token' value='${_csrf_token}'>
                         </form>
                     </div>
                     <div class='modal-footer'>
@@ -43,13 +53,18 @@ function genTable(name, link, column, type) {
                 </div>
         </div>
     </div>
-    <span class= 'btn btn-primary btn-new'>New ${link}</span>`
+    `)
 
-    
+    if (name != "users") {
+        $(`.${name}`).append(`<span class= 'btn btn-primary btn-new'>New ${link}</span>`)
+    }
     // loop form input
     for (let i = 0; i < columnArr.length; i++) {
         $(`#form-${name}`).append(`<label>${columnArr[i].toUpperCase()}</label>
         <input type='${typeArr[i]}' class='form-control ${name}-${columnArr[i]}' name='${columnArr[i]}' id='${columnArr[i]}'>`)
+    }
+    function onPickImage() {
+
     }
 
     $(".btn-new").on("click", () => {
@@ -59,13 +74,14 @@ function genTable(name, link, column, type) {
                 $(`.${name}-${columnArr[i]}`).val(new Date())
             }
         }
-        $(`.${name}-id`).val("")
+        $(`#${name}-id`).val("")
         $(`#modal-${name}`).modal();
     })
 
-    $(`.${name}`).append(modal)
+
     // DataTable
     $(selectorTableName).DataTable({
+
         "processing": true,
         "serverSide": true,
         "ajax": "api/" + name,
@@ -78,20 +94,24 @@ function genTable(name, link, column, type) {
             const deleteButton = formButton("Delete", "danger", dtdata.id);
             editButton.onclick = function () {
                 const id = dtdata.id;
+                console.log($(`#${name}-id`).val())
                 $.ajax({
                     type: "POST",
                     url: "api/form" + name,
                     data: {
-                        'id': id
+                        'id': id,
+                        "_csrf_token": $("meta[name='csrf-token']").attr("content")
                     },
                     success: function (response) {
+                        console.log(response[0].email)
+
                         console.log(response[0])
                         for (let i = 0; i < columnArr.length; i++) {
                             $(`.${name}-${columnArr[i]}`).val(response[0][columnArr[i]])
                             console.log(columnArr[i])
 
                         }
-                        $(`.${name}-id`).val(response[0].id)
+                        $('.' + name + '-id').val(response[0].id)
                     }
                 });
                 $(`#modal-${name}`).modal();
@@ -101,8 +121,11 @@ function genTable(name, link, column, type) {
                 $.ajax({
                     type: "DELETE",
                     url: "api/" + name,
+
                     data: {
-                        'id': id
+                        'id': id,
+                        "_csrf_token": $("meta[name='csrf-token']").attr("content")
+
                     },
                     success: function (response) {
                     }
@@ -129,27 +152,26 @@ function genTable(name, link, column, type) {
     $(`#form-${name}`).on('submit', (e) => {
         e.preventDefault();
         validateSubmit();
+        $(selectorTableName).DataTable().ajax.reload()
 
     })
     const validateSubmit = () => {
         const form = $(`#form-${name}`)[0];
         const data = new FormData(form);
-        let mode = "edit";
-        if ($(`#${name}-id`).val() != "" || null ?  mode : mode = "new") {
-            $.ajax({
-                method: "POST",
-                url: `api/${mode}/${name}`,
-                data: data,
-                processData: false,
-                cache: false,
-                enctype: "multipart/form-data",
-                contentType: false,
-                success: function (response) {
-                    console.log(response)
-                }
-            });
-        }
+        let mode;
+        $(`#${name}-id`).val() != "" || null ? mode = "edit" : mode = "new"
+        $.ajax({
+            method: "POST",
+            url: `api/${mode}${name}`,
+            data: data,
+            processData: false,
+            cache: false,
+            enctype: "multipart/form-data",
+            contentType: false,
+            success: function (response) {
+                console.log(response)
+            }
+        });
         $(`#modal-${name}`).modal('hide');
-        $(selectorTableName).DataTable().ajax.reload()
     }
 }
