@@ -1,10 +1,4 @@
-genTable("users", "User", "email, provider, is_admin", "string, string, string")
-genTable("items", "Item", "title, amount, price", "string, number, number")
-
-
-function genTable(name, link, column, type) {
-    // nav
-    $(".navigation").append(`<li class='nav-item'><a class='nav-link' href='/${name}'>${link}</a></li>`);
+function genTable(name, column,) {
 
     //table
     const tableName = `table-${name}`
@@ -16,7 +10,6 @@ function genTable(name, link, column, type) {
     }
     columnsArr.push({ 'data': "id" })
 
-    const typeArr = type.split(", ")
 
     $(`.${name}`).append(`<table id='${tableName}' class='table-hover table'>
     <thead><tr class='table-primary' id='thead-${name}'></tr></thead>
@@ -26,55 +19,18 @@ function genTable(name, link, column, type) {
     for (let i = 0; i < columnArr.length; i++) {
         $(`#thead-${name}`).append(`<td>${columnArr[i].toUpperCase()}</td>`)
     }
-    $(`#thead-${name}`).append(`<td>Action</td>`)
+    $(`#thead-${name}`).append(`<td>ACTION</td>`)
 
 
-    const _csrf_token = $("meta[name='csrf-token']").attr("content")
 
-    //Modal
-    $(`.${name}`).before(`<h1>List ${link}</h1>`)
-    $(`.${name}`).append(`
-    <div class='modal fade' id='modal-${name}'>
-        <div id='modal-dialog-${name}' class='modal-dialog modal-dialog-centered'>
-                <div class='modal-content'>
-                    <div class='modal-header'>
-                    ${link}
-                    </div>
-                    <div class='modal-body'>
-                        <form method='POST' id='form-${name}'>
-                        <input type='hidden' class='form-control ${name}-id' id='${name}-id' name='id'>
-                        <input type='hidden' class='form-control ' id='' name='_csrf_token' value='${_csrf_token}'>
-                        </form>
-                    </div>
-                    <div class='modal-footer'>
-                    <input type='button' data-dismiss='modal' class='btn btn-danger' value='Cancel'>
-                    <input type='submit' class='btn btn-primary' value='Submit' form='form-${name}'>
-                    </div>
-                </div>
-        </div>
-    </div>
-    `)
-
-    if (name != "users") {
-        $(`.${name}`).append(`<span class= 'btn btn-primary btn-new'>New ${link}</span>`)
-    }
-    // loop form input
-    for (let i = 0; i < columnArr.length; i++) {
-        $(`#form-${name}`).append(`<label>${columnArr[i].toUpperCase()}</label>
-        <input type='${typeArr[i]}' class='form-control ${name}-${columnArr[i]}' name='${columnArr[i]}' id='${columnArr[i]}'>`)
-    }
-    function onPickImage() {
-
-    }
 
     $(".btn-new").on("click", () => {
         for (let i = 0; i < columnArr.length; i++) {
-            $(`.${name}-${columnArr[i]}`).val("")
-            if ($(`.${name}-${columnArr[i]}`).attr("type") == "date") {
-                $(`.${name}-${columnArr[i]}`).val(new Date())
+            console.log($(`#${name}-${columnArr[i]}`).hasClass("default"))
+            if ($(`#${name}-${columnArr[i]}`).hasClass("default") == false) {
+                $(`#${name}-${columnArr[i]}`).val("")
             }
         }
-        $(`#${name}-id`).val("")
         $(`#modal-${name}`).modal();
     })
 
@@ -90,24 +46,29 @@ function genTable(name, link, column, type) {
             let lastCol = $(row).find("td").length - 1
             $(`td:eq(${lastCol})`, row).attr("class", "td-actions")
             $(`td:eq(${lastCol})`, row).html("")
+            const showButton = formButton("Show", "primary", dtdata.id);
             const editButton = formButton("Edit", "primary", dtdata.id);
             const deleteButton = formButton("Delete", "danger", dtdata.id);
+            const id = dtdata.id;
+            showButton.onclick = function () {
+                window.location.href = `leads/${id}`;
+
+            }
             editButton.onclick = function () {
-                const id = dtdata.id;
                 console.log($(`#${name}-id`).val())
                 $.ajax({
                     type: "POST",
                     url: "api/form" + name,
                     data: {
                         'id': id,
-                        "_csrf_token": $("meta[name='csrf-token']").attr("content")
+                        "_csrf_token": _csrf_token
                     },
                     success: function (response) {
                         console.log(response[0].email)
 
                         console.log(response[0])
                         for (let i = 0; i < columnArr.length; i++) {
-                            $(`.${name}-${columnArr[i]}`).val(response[0][columnArr[i]])
+                            $(`#${name}-${columnArr[i]}`).val(response[0][columnArr[i]])
                             console.log(columnArr[i])
 
                         }
@@ -117,14 +78,13 @@ function genTable(name, link, column, type) {
                 $(`#modal-${name}`).modal();
             }
             deleteButton.onclick = function () {
-                const id = dtdata.id;
                 $.ajax({
                     type: "DELETE",
                     url: "api/" + name,
 
                     data: {
                         'id': id,
-                        "_csrf_token": $("meta[name='csrf-token']").attr("content")
+                        "_csrf_token": _csrf_token
 
                     },
                     success: function (response) {
@@ -133,6 +93,7 @@ function genTable(name, link, column, type) {
                 $(selectorTableName).DataTable().ajax.reload()
 
             }
+            $(`td:eq(${lastCol})`, row).append(showButton)
             $(`td:eq(${lastCol})`, row).append(editButton)
             $(`td:eq(${lastCol})`, row).append(deleteButton)
         },
@@ -153,11 +114,17 @@ function genTable(name, link, column, type) {
         e.preventDefault();
         validateSubmit();
         $(selectorTableName).DataTable().ajax.reload()
+        $(`#modal-${name}`).modal('hide');
 
     })
     const validateSubmit = () => {
         const form = $(`#form-${name}`)[0];
-        const data = new FormData(form);
+        let data = new FormData(form);
+        data.append("_csrf_token", _csrf_token)
+        console.log(data)
+        for (let value of data.values()) {
+            console.log(value);
+        }
         let mode;
         $(`#${name}-id`).val() != "" || null ? mode = "edit" : mode = "new"
         $.ajax({
@@ -172,6 +139,6 @@ function genTable(name, link, column, type) {
                 console.log(response)
             }
         });
-        $(`#modal-${name}`).modal('hide');
     }
 }
+
